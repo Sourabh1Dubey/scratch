@@ -1,7 +1,59 @@
-import React from "react";
+// 📁 components/CatSprite.js
+import React, { useEffect, useRef, useState } from "react";
 
-export default function CatSprite() {
+export default function CatSprite({ spriteId, actions = [], resetFlag = 0, onPositionChange, collision }) {
+  const spriteRef = useRef(null);
+  const [position, setPosition] = useState({ x: spriteId === 1 ? 0 : 200, y: 0 });
+  const [rotation, setRotation] = useState(0);
+  const [internalResetFlag, setInternalResetFlag] = useState(resetFlag);
+
+  useEffect(() => {
+    if (resetFlag !== internalResetFlag) {
+      const defaultX = spriteId === 1 ? 0 : 200;
+      setPosition({ x: defaultX, y: 0 });
+      setRotation(0);
+      setInternalResetFlag(resetFlag);
+    }
+  }, [resetFlag, spriteId, internalResetFlag]);
+
+  useEffect(() => {
+    if (!actions || actions.length === 0) return;
+
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      const action = actions[currentIndex];
+      const value = parseInt(action.value || 10, 10);
+
+      if (action.actionType === "move") {
+        setPosition((prev) => {
+          const newX = prev.x + value;
+          onPositionChange?.(spriteId, newX, prev.y);
+          return { ...prev, x: newX };
+        });
+      } else if (action.actionType === "turn-undo") {
+        setRotation((prev) => prev - value);
+      } else if (action.actionType === "turn-redo") {
+        setRotation((prev) => prev + value);
+      }
+
+      currentIndex++;
+      if (currentIndex >= actions.length) clearInterval(interval);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [actions, spriteId, onPositionChange]);
+
   return (
+    <div
+      ref={spriteRef}
+      style={{
+        transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg)`,
+        transition: "transform 0.3s ease",
+        width: "100px",
+        height: "100px",
+        position: "absolute",
+      }}
+    >
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="95.17898101806641"
@@ -180,5 +232,6 @@ export default function CatSprite() {
         </g>
       </g>
     </svg>
+    </div>
   );
 }
